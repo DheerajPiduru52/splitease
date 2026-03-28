@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  friendshipsRequested Friendship[]   @relation("Requester")
+  friendshipsAddressed Friendship[]   @relation("Addressee")
+  groupMemberships     GroupMember[]
+  groupsCreated        Group[]        @relation("GroupCreator")
+  expensesPaid         Expense[]      @relation("ExpensePaidBy")
+  expensesCreated      Expense[]      @relation("ExpenseCreatedBy")
+  expenseSplits        ExpenseSplit[]
+  settlementsPaid      Settlement[]   @relation("SettlementPayer")
+  settlementsReceived  Settlement[]   @relation("SettlementPayee")
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model Friendship {
+  id          String           @id @default(uuid())
+  requesterId String
+  addresseeId String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+
+  requester User @relation("Requester", fields: [requesterId], references: [id])
+  addressee User @relation("Addressee", fields: [addresseeId], references: [id])
+
+  @@unique([requesterId, addresseeId])
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  createdBy   User          @relation("GroupCreator", fields: [createdById], references: [id])
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String   @id @default(uuid())
+  groupId  String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+}
+
+enum SplitMethod {
+  EQUAL
+  EXACT_AMOUNTS
+  PERCENTAGES
+  SHARES
+}
+
+model Expense {
+  id          String      @id @default(uuid())
+  description String
+  totalAmount Decimal     @db.Decimal(10, 2)
+  currency    String      @default("USD")
+  paidById    String
+  groupId     String?
+  splitMethod SplitMethod @default(EQUAL)
+  date        DateTime    @default(now())
+  notes       String?
+  createdById String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  paidBy    User           @relation("ExpensePaidBy", fields: [paidById], references: [id])
+  createdBy User           @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  group     Group?         @relation(fields: [groupId], references: [id])
+  splits    ExpenseSplit[]
+}
+
+model ExpenseSplit {
+  id         String  @id @default(uuid())
+  expenseId  String
+  userId     String
+  owedAmount Decimal @db.Decimal(10, 2)
+  splitValue Decimal @db.Decimal(10, 4)
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([expenseId, userId])
+}
+
+model Settlement {
+  id        String   @id @default(uuid())
+  payerId   String
+  payeeId   String
+  amount    Decimal  @db.Decimal(10, 2)
+  groupId   String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  payer User   @relation("SettlementPayer", fields: [payerId], references: [id])
+  payee User   @relation("SettlementPayee", fields: [payeeId], references: [id])
+  group Group? @relation(fields: [groupId], references: [id])
+}
