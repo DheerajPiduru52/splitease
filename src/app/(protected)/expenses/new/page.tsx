@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ interface UserProfile {
 
 const STEPS = ["Basic Info", "Participants", "Split", "Review"];
 
-export default function NewExpensePage() {
+function NewExpenseForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedGroupId = searchParams.get("groupId") ?? "";
@@ -342,5 +342,13 @@ export default function NewExpensePage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function NewExpensePage() {
+  return (
+    <Suspense>
+      <NewExpenseForm />
+    </Suspense>
   );
 }

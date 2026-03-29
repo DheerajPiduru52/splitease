@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ interface Friend {
   avatarUrl: string | null;
 }
 
-export default function SettlePage() {
+function SettleForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedFriendId = searchParams.get("friendId") ?? "";
@@ -276,5 +276,13 @@ export default function SettlePage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function SettlePage() {
+  return (
+    <Suspense>
+      <SettleForm />
+    </Suspense>
   );
 }
